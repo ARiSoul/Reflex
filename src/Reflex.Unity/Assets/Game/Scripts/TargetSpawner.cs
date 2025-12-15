@@ -67,8 +67,17 @@ public sealed class TargetSpawner : MonoBehaviour
         Vector2 dir = fromLeft ? Vector2.right : Vector2.left;
 
         var target = _pool.Get();
+        target.OnDespawned -= HandleDespawned; // safety
+        target.OnDespawned += HandleDespawned;
+
         target.transform.position = spawnPos;
         target.Init(kind, speed, dir, sprite);
+    }
+
+    private void HandleDespawned(TargetView view)
+    {
+        view.OnDespawned -= HandleDespawned;
+        _pool.Release(view);
     }
 
     private Sprite SpriteFor(TargetKind kind) => kind switch

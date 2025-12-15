@@ -35,6 +35,7 @@ public sealed class GameManager : MonoBehaviour
         if (_state.IsGameOver)
         {
             // TODO: show results UI + restart button
+            Debug.Log($"GAME OVER | Score={_state.Score} TimeLeft={_state.TimeLeft:0.00} Mistakes={_state.Mistakes}/{_state.MaxMistakes}");
             return;
         }
 
