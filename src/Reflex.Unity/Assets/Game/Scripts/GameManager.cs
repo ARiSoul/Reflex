@@ -16,8 +16,10 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private SfxPlayer _sfx;
     [SerializeField] private VfxPool _vfx;
     [SerializeField] private FloatingTextPool _floatingText;
+    [SerializeField] private MilestoneBanner _milestone;
 
 
+    private int _lastCombo;
     private bool _gameOverShown;
     private GameState _state;
     private DifficultyModel _difficulty;
@@ -41,6 +43,9 @@ public sealed class GameManager : MonoBehaviour
 
         _gameOverShown = false;
         _gameOverView?.Hide();
+
+        _lastCombo = 0;
+        _milestone.Hide();
     }
 
     private void Update()
@@ -75,6 +80,14 @@ public sealed class GameManager : MonoBehaviour
                 var kind = target.Kind;
 
                 _state.ApplyHit(kind);
+
+                if (_state.Combo != _lastCombo)
+                {
+                    _lastCombo = _state.Combo;
+
+                    if (_lastCombo > 0 && _lastCombo % 10 == 0)
+                        _milestone.Show($"{_lastCombo} COMBO!");
+                }
 
                 bool isBad = kind is TargetKind.AddScore_Negative
                     or TargetKind.DivideScore_div2
@@ -119,6 +132,9 @@ public sealed class GameManager : MonoBehaviour
                         _sfx.PlayGoodHit();
                         _juice.GoodHit();
                     }
+
+                    if (kind == TargetKind.MultiplyScore_x2)
+                        _juice.X2SlowMo();
                 }
 
                 if (_vfx != null)

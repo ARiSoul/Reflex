@@ -8,6 +8,8 @@ public sealed class HudView : MonoBehaviour
     [SerializeField] private TMP_Text _timeText;
     [SerializeField] private TMP_Text _comboText;
     [SerializeField] private TMP_Text _mistakesText;
+    [SerializeField] private LowTimeWarning _lowTimeWarning;
+
 
     [Header("Juice")]
     [SerializeField] private UiPunch _scorePunch;
@@ -34,5 +36,7 @@ public sealed class HudView : MonoBehaviour
             _comboPunch.Punch();
             _lastCombo = state.Combo;
         }
+
+        _lowTimeWarning?.SetTime(state.TimeLeft);
     }
 }

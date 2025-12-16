@@ -14,6 +14,11 @@ public sealed class JuiceController : MonoBehaviour
     [SerializeField] private float _goodShakeStrength = 0.08f;
     [SerializeField] private float _badShakeStrength = 0.12f;
 
+    [Header("Slow Mo")]
+    [SerializeField] private float _x2SlowMoScale = 0.6f;
+    [SerializeField] private float _x2SlowMoSeconds = 0.12f;
+
+    private Coroutine _slowMoRoutine;
     private Coroutine _shakeRoutine;
     private Vector3 _cameraOriginalPos;
     private bool _isHitStopping;
@@ -78,4 +83,24 @@ public sealed class JuiceController : MonoBehaviour
         _cameraTransform.localPosition = _cameraOriginalPos;
         _shakeRoutine = null;
     }
+
+    public void X2SlowMo()
+    {
+        if (_slowMoRoutine != null) StopCoroutine(_slowMoRoutine);
+        _slowMoRoutine = StartCoroutine(SlowMoRoutine(_x2SlowMoScale, _x2SlowMoSeconds));
+    }
+
+    private System.Collections.IEnumerator SlowMoRoutine(float scale, float seconds)
+    {
+        // Don't fight hit-stop (if timeScale is 0, wait until it comes back)
+        while (Time.timeScale == 0f)
+            yield return null;
+
+        float old = Time.timeScale;
+        Time.timeScale = scale;
+        yield return new WaitForSecondsRealtime(seconds);
+        Time.timeScale = old;
+        _slowMoRoutine = null;
+    }
+
 }
