@@ -13,17 +13,22 @@ public sealed class FloatingTextView : MonoBehaviour
     {
         if (_text == null) _text = GetComponent<TMP_Text>();
 
-        transform.position = startPos;
+        // Force it in front (Unity 2D camera usually at Z=-10)
+        transform.position = new Vector3(startPos.x, startPos.y, -2f);
+        transform.localScale = Vector3.one * 0.25f;
+
         _velocity = velocity;
         _life = Mathf.Max(0.01f, lifetime);
         _age = 0f;
 
         _baseColor = color;
         _text.text = message;
+
+        // Ensure alpha is visible
+        color.a = 1f;
         _text.color = color;
 
         gameObject.SetActive(true);
-        transform.localScale = Vector3.one; // reset
     }
 
     private void Update()

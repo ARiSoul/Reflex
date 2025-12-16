@@ -20,17 +20,24 @@ public sealed class VfxPool : MonoBehaviour
 
         // Tint particles
         var main = ps.main;
-        main.startColor = tint;
+
+        var c = tint;
+        c.r = Mathf.Clamp01(c.r * 1.35f);
+        c.g = Mathf.Clamp01(c.g * 1.35f);
+        c.b = Mathf.Clamp01(c.b * 1.35f);
+        main.startColor = c;
 
         ps.gameObject.SetActive(true);
         ps.Play();
 
-        StartCoroutine(ReleaseAfter(ps, main.duration + main.startLifetime.constantMax + 0.05f));
+        StartCoroutine(ReleaseAfter(ps));
     }
 
-    private IEnumerator ReleaseAfter(ParticleSystem ps, float seconds)
+    private IEnumerator ReleaseAfter(ParticleSystem ps)
     {
-        yield return new WaitForSeconds(seconds);
+        // Wait in real time so hitstop doesn't freeze VFX cleanup
+        yield return new WaitForSecondsRealtime(0.45f);
+
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         _pool.Release(ps);
     }

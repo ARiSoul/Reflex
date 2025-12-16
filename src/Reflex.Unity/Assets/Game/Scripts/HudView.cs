@@ -13,7 +13,7 @@ public sealed class HudView : MonoBehaviour
     [SerializeField] private UiPunch _scorePunch;
     [SerializeField] private UiPunch _comboPunch;
 
-    private int _lastScore;
+    private long _lastScore;
     private int _lastCombo;
 
     public void Render(GameState state)
@@ -25,13 +25,13 @@ public sealed class HudView : MonoBehaviour
 
         if (state.Score != _lastScore)
         {
-            _scorePunch?.Punch();
+            _scorePunch.Punch();
             _lastScore = state.Score;
         }
 
         if (state.Combo != _lastCombo)
         {
-            _comboPunch?.Punch();
+            _comboPunch.Punch();
             _lastCombo = state.Combo;
         }
     }

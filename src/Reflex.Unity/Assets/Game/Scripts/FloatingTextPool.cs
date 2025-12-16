@@ -15,6 +15,7 @@ public sealed class FloatingTextPool : MonoBehaviour
     public void Spawn(string msg, Color color, Vector3 pos)
     {
         var ft = _pool.Get();
+
         // When it disables itself, we release next frame by polling its active state
         // (simple + reliable without events)
         ft.Play(
