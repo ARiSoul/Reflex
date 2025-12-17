@@ -20,7 +20,7 @@ real, honest gameplay inspired by popular playable ads — without the bait.
 ## Status
 - [x] Early prototype
 - [x] v0.1 - ugly but functional
-- [ ] v0.2 - juice + difficulty curve
+- [x] v0.2 - juice + difficulty curve
 - [ ] v0.3 - progression + meta
 - [ ] v0.4 - mobile build + feedback
 - [ ] v1.0 - public release
