@@ -4,7 +4,7 @@ namespace Reflex.Core
 {
     public sealed class GameState
     {
-        public int Score { get; private set; }
+        public long Score { get; private set; }
         public float TimeLeft { get; private set; }
         public int Combo { get; private set; }
         public int Mistakes { get; private set; }
@@ -42,7 +42,7 @@ namespace Reflex.Core
                     break;
 
                 case TargetKind.MultiplyScore_x2:
-                    Score *= 2;
+                    Score = Score > long.MaxValue / 2 ? long.MaxValue : Score * 2;
                     Combo++;
                     break;
 
@@ -69,7 +69,7 @@ namespace Reflex.Core
                 AddScore(25);
         }
 
-        private void AddScore(int delta)
+        private void AddScore(long delta)
         {
             Score = Math.Max(0, Score + delta);
         }
