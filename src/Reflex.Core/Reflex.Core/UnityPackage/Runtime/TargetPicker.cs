@@ -9,27 +9,27 @@
             _rng = rng;
         }
 
-        public TargetKind NextTarget(float badChance)
+        public TargetKind NextTarget(LevelDefinition level)
         {
-            // Decide "good" vs "bad"
-            bool isBad = _rng.NextFloat01() < badChance;
+            float roll = _rng.NextFloat01();
+            float acc = 0f;
 
-            if (!isBad)
-            {
-                // Good pool
-                return PickOne(
-                    TargetKind.AddScore_Positive,
-                    TargetKind.MultiplyScore_x2,
-                    TargetKind.AddTime
-                );
-            }
+            acc += level.PositiveChance;
+            if (roll < acc) return TargetKind.AddScore_Positive;
 
-            // Bad pool
-            return PickOne(
-                TargetKind.AddScore_Negative,
-                TargetKind.DivideScore_div2,
-                TargetKind.SubtractTime
-            );
+            acc += level.NegativeChance;
+            if (roll < acc) return TargetKind.AddScore_Negative;
+
+            acc += level.MultiplierChance;
+            if (roll < acc) return TargetKind.MultiplyScore_x2;
+
+            acc += level.DividerChance;
+            if (roll < acc) return TargetKind.DivideScore_div2;
+
+            acc += level.AddTimeChance;
+            if (roll < acc) return TargetKind.AddTime;
+
+            return TargetKind.SubtractTime;
         }
 
         private TargetKind PickOne(params TargetKind[] kinds)

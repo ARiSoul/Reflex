@@ -3,9 +3,9 @@ using UnityEngine;
 
 public sealed class MilestoneBanner : MonoBehaviour
 {
-    [SerializeField] private TMP_Text _text;
-    [SerializeField] private float _showSeconds = 0.6f;
-    [SerializeField] private float _punchStrength = 0.35f;
+    public TMP_Text Text;
+    public float ShowSeconds = 0.6f;
+    public float PunchStrength = 0.35f;
 
     private float _t;
     private bool _active;
@@ -13,45 +13,45 @@ public sealed class MilestoneBanner : MonoBehaviour
 
     private void Awake()
     {
-        if (_text == null) _text = GetComponent<TMP_Text>();
+        if (Text == null) Text = GetComponent<TMP_Text>();
         _baseScale = transform.localScale;
         Hide();
     }
 
     public void Show(string message)
     {
-        if (_text == null) return;
+        if (Text == null) return;
 
-        _text.text = message;
-        _text.gameObject.SetActive(true);
+        Text.text = message;
+        Text.gameObject.SetActive(true);
 
         _t = 0f;
         _active = true;
         transform.localScale = _baseScale * 0.85f;
-        var c = _text.color; c.a = 1f; _text.color = c;
+        var c = Text.color; c.a = 1f; Text.color = c;
     }
 
     public void Hide()
     {
-        if (_text != null) _text.gameObject.SetActive(false);
+        if (Text != null) Text.gameObject.SetActive(false);
         _active = false;
     }
 
     private void Update()
     {
-        if (!_active || _text == null) return;
+        if (!_active || Text == null) return;
 
         _t += Time.unscaledDeltaTime;
-        float p = Mathf.Clamp01(_t / _showSeconds);
+        float p = Mathf.Clamp01(_t / ShowSeconds);
 
         // Punch
         float wave = Mathf.Sin(p * Mathf.PI);
-        transform.localScale = _baseScale * (1f + wave * _punchStrength);
+        transform.localScale = _baseScale * (1f + wave * PunchStrength);
 
         // Fade out near end
-        var c = _text.color;
+        var c = Text.color;
         c.a = 1f - p;
-        _text.color = c;
+        Text.color = c;
 
         if (p >= 1f)
             Hide();

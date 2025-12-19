@@ -2,9 +2,9 @@ using UnityEngine;
 
 public sealed class DespawnOnKillZone : MonoBehaviour
 {
-    private TargetView _view;
+    private GateView _view;
 
-    private void Awake() => _view = GetComponent<TargetView>();
+    private void Awake() => _view = GetComponent<GateView>();
 
     private void OnTriggerEnter2D(Collider2D other)
     {

@@ -8,7 +8,8 @@ namespace Reflex.Core
         public float TimeLeft { get; private set; }
         public int Combo { get; private set; }
         public int Mistakes { get; private set; }
-        public bool IsGameOver => TimeLeft <= 0f || Mistakes >= MaxMistakes;
+        public bool IsGameOver => Mistakes >= MaxMistakes;
+        public int CurrentLevel { get; set; } = 1;
 
         public int MaxMistakes { get; }
 
@@ -72,6 +73,18 @@ namespace Reflex.Core
         private void AddScore(long delta)
         {
             Score = Math.Max(0, Score + delta);
+        }
+
+        public void ResetTime(float seconds)
+        {
+            if (seconds < 0f) seconds = 0f;
+
+            TimeLeft = seconds;
+        }
+
+        public void ResetMistakes()
+        {
+            Mistakes = 0;
         }
     }
 }

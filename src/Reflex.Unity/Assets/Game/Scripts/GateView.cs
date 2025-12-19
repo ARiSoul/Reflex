@@ -3,7 +3,7 @@ using Reflex.Core;
 using System;
 using TMPro;
 
-public sealed class TargetView : MonoBehaviour
+public sealed class GateView : MonoBehaviour
 {
     [SerializeField] private SpriteRenderer _spriteRenderer;
     [SerializeField] private Collider2D _col;
@@ -14,19 +14,28 @@ public sealed class TargetView : MonoBehaviour
     [SerializeField] private float _wobbleSpeed = 7f;
 
     public TargetKind Kind { get; private set; }
-    public event Action<TargetView> OnDespawned;
+
+    // Assigned by spawner so it can despawn the sibling gate.
+    public int PairId { get; set; }
+
+    public event Action<GateView> OnDespawned;
+    public event Action<GateView> OnChosen;
 
     private float _speed;
-    private Vector2 _dir;
     private float _spawnT;
     private Vector3 _baseScale;
     private float _wobbleSeed;
 
-    public void Init(TargetKind kind, float speed, Vector2 direction, Sprite sprite)
+    private bool _isDespawned;
+    private bool _isChosen;
+
+    public void Init(TargetKind kind, float speed, Sprite sprite)
     {
         Kind = kind;
         _speed = speed;
-        _dir = direction.normalized;
+
+        _isDespawned = false;
+        _isChosen = false;
 
         if (_spriteRenderer != null)
         {
@@ -37,36 +46,75 @@ public sealed class TargetView : MonoBehaviour
         if (_label != null)
             _label.text = LabelFor(kind);
 
-        if (_col != null) _col.enabled = true;
-
-        gameObject.SetActive(true);
+        if (_col != null)
+            _col.enabled = true;
 
         _baseScale = Vector3.one;
-        transform.localScale = _baseScale * 0.85f; // start slightly smaller
+        transform.localScale = _baseScale * 0.85f;
         _spawnT = 0f;
         _wobbleSeed = UnityEngine.Random.value * 1000f;
+        transform.rotation = Quaternion.identity;
     }
 
     private void Update()
     {
-        transform.position += (Vector3)(_speed * Time.deltaTime * _dir);
+        if (_isDespawned)
+            return;
 
-        // spawn punch
+        transform.position += Vector3.down * (_speed * Time.deltaTime);
+
         _spawnT += Time.deltaTime;
         float p = Mathf.Clamp01(_spawnT / _spawnPunchDuration);
         float wave = Mathf.Sin(p * Mathf.PI);
-        float punch = 0.85f + wave * _spawnPunchStrength; // grows then settles
+        float punch = 0.85f + wave * _spawnPunchStrength;
         transform.localScale = _baseScale * Mathf.Lerp(punch, 1f, p);
 
-        // subtle wobble (makes targets feel alive)
         float wobble = Mathf.Sin((Time.time + _wobbleSeed) * _wobbleSpeed) * _wobbleAmount;
         transform.rotation = Quaternion.Euler(0f, 0f, wobble * 10f);
     }
 
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (_isDespawned)
+            return;
+
+        if (!other.CompareTag("Player"))
+            return;
+
+        Choose();
+    }
+
+    private void Choose()
+    {
+        if (_isChosen || _isDespawned)
+            return;
+
+        _isChosen = true;
+        OnChosen?.Invoke(this);
+
+        Despawn();
+    }
+
+    public void ForceDespawn()
+    {
+        if (_isDespawned)
+            return;
+
+        _isChosen = true;
+        Despawn();
+    }
+
     public void Despawn()
     {
-        if (_col != null) _col.enabled = false;
+        if (_isDespawned)
+            return;
 
+        _isDespawned = true;
+
+        if (_col != null)
+            _col.enabled = false;
+
+        // Don't deactivate here: pool will do that in Release(view)
         OnDespawned?.Invoke(this);
     }
 

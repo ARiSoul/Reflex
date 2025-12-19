@@ -5,10 +5,10 @@ namespace Reflex.Core
     public sealed class DifficultyModel
     {
         // Tune these to taste
-        public float MinSpawnInterval = 0.25f;
-        public float MaxSpawnInterval = 0.90f;
-        public float MinSpeed = 3.5f;
-        public float MaxSpeed = 9.5f;
+        public float MinSpawnInterval = 0.35f;
+        public float MaxSpawnInterval = 1f;
+        public float MinSpeed = 1f;
+        public float MaxSpeed = 10f;
 
         // 0..1 over run duration
         public float NormalizedProgress(float elapsed, float totalDuration)
