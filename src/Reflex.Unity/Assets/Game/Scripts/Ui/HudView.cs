@@ -11,6 +11,7 @@ public sealed class HudView : MonoBehaviour
     public TMP_Text MistakesText;
     public TMP_Text CurrentLevelText;
     public LowTimeWarning LowTimeWarning;
+    public TMP_Text PlayerValueText;
 
     [Header("Juice")]
     public UiPunch ScorePunch;
@@ -26,6 +27,7 @@ public sealed class HudView : MonoBehaviour
         if (ComboText != null) ComboText.text = $"Combo: {state.Combo}";
         if (MistakesText != null) MistakesText.text = $"Mistakes: {state.Mistakes}/{state.MaxMistakes}";
         if (CurrentLevelText != null) CurrentLevelText.text = $"Level: {state.CurrentLevel}";
+        if (PlayerValueText != null) PlayerValueText.text = $"Value: {state.PlayerValue}";
 
         if (state.Score != _lastScore)
         {

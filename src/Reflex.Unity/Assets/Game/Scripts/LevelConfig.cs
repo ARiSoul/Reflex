@@ -31,6 +31,19 @@ public sealed class LevelConfig : ScriptableObject
     [Range(0f, 1f)]
     public float SameCategoryBadBias = 0.5f;
 
+    [Header("Fairness")]
+    [Range(0f, 1f)]
+    public float GoodGoodChance = 0.12f;
+
+    [Tooltip("Minimum waves between good+good jackpots.")]
+    public int MinWavesBetweenGoodGood = 4;
+
+    [Tooltip("If you haven't seen AddTime in this many waves, force it as the good option.")]
+    public int MaxWavesWithoutAddTime = 6;
+
+    [Tooltip("Max times in a row we allow severe bad (Divide/SubtractTime).")]
+    public int MaxSevereBadInARow = 2;
+
     public float TotalWeight =>
         Mathf.Max(0f, Positive) +
         Mathf.Max(0f, Negative) +

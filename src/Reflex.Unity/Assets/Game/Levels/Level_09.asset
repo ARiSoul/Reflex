@@ -13,14 +13,18 @@ MonoBehaviour:
   m_Name: Level_09
   m_EditorClassIdentifier: Assembly-CSharp::LevelConfig
   Id: 9
-  DurationSeconds: 30
-  Positive: 0.7
-  Negative: 0.1
-  Multiplier: 0.1
-  Divider: 0
-  AddTime: 0.1
-  SubtractTime: 0
-  TargetSpeed: 6
+  DurationSeconds: 10
+  Positive: 0.1
+  Negative: 0.37
+  Multiplier: 0
+  Divider: 0.3
+  AddTime: 0.03
+  SubtractTime: 0.2
+  TargetSpeed: 10
   SpawnIntervalSeconds: 1.2
   SameCategoryChance: 0.15
   SameCategoryBadBias: 0.5
+  GoodGoodChance: 0.08
+  MinWavesBetweenGoodGood: 4
+  MaxWavesWithoutAddTime: 8
+  MaxSevereBadInARow: 5

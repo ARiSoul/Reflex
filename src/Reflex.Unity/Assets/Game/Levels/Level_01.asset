@@ -24,3 +24,7 @@ MonoBehaviour:
   SpawnIntervalSeconds: 1.4
   SameCategoryChance: 0.15
   SameCategoryBadBias: 0.5
+  GoodGoodChance: 0.15
+  MinWavesBetweenGoodGood: 4
+  MaxWavesWithoutAddTime: 2
+  MaxSevereBadInARow: 2

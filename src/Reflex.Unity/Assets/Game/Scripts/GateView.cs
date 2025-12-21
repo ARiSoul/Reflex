@@ -1,22 +1,39 @@
-using UnityEngine;
-using Reflex.Core;
 using System;
 using TMPro;
+using UnityEngine;
+using UnityEngine.Serialization;
+using Reflex.Core;
 
 public sealed class GateView : MonoBehaviour
 {
-    [SerializeField] private SpriteRenderer _spriteRenderer;
-    [SerializeField] private Collider2D _col;
-    [SerializeField] private TMP_Text _label;
-    [SerializeField] private float _spawnPunchStrength = 0.22f;
-    [SerializeField] private float _spawnPunchDuration = 0.10f;
-    [SerializeField] private float _wobbleAmount = 0.04f;
-    [SerializeField] private float _wobbleSpeed = 7f;
+    [FormerlySerializedAs("_spriteRenderer")]
+    public SpriteRenderer SpriteRenderer;
+
+    [FormerlySerializedAs("_col")]
+    public Collider2D Col;
+
+    [FormerlySerializedAs("_label")]
+    public TMP_Text Label;
+
+    [FormerlySerializedAs("_spawnPunchStrength")]
+    public float SpawnPunchStrength = 0.22f;
+
+    [FormerlySerializedAs("_spawnPunchDuration")]
+    public float SpawnPunchDuration = 0.10f;
+
+    [FormerlySerializedAs("_wobbleAmount")]
+    public float WobbleAmount = 0.04f;
+
+    [FormerlySerializedAs("_wobbleSpeed")]
+    public float WobbleSpeed = 7f;
 
     public TargetKind Kind { get; private set; }
 
     // Assigned by spawner so it can despawn the sibling gate.
     public int PairId { get; set; }
+
+    // True only if the PLAYER chose this gate (entered trigger).
+    public bool WasChosen { get; private set; }
 
     public event Action<GateView> OnDespawned;
     public event Action<GateView> OnChosen;
@@ -25,9 +42,7 @@ public sealed class GateView : MonoBehaviour
     private float _spawnT;
     private Vector3 _baseScale;
     private float _wobbleSeed;
-
     private bool _isDespawned;
-    private bool _isChosen;
 
     public void Init(TargetKind kind, float speed, Sprite sprite)
     {
@@ -35,19 +50,19 @@ public sealed class GateView : MonoBehaviour
         _speed = speed;
 
         _isDespawned = false;
-        _isChosen = false;
+        WasChosen = false;
 
-        if (_spriteRenderer != null)
+        if (SpriteRenderer != null)
         {
-            _spriteRenderer.sprite = sprite;
-            _spriteRenderer.color = ColorFor(kind);
+            SpriteRenderer.sprite = sprite;
+            SpriteRenderer.color = ColorFor(kind);
         }
 
-        if (_label != null)
-            _label.text = LabelFor(kind);
+        if (Label != null)
+            Label.text = LabelFor(kind);
 
-        if (_col != null)
-            _col.enabled = true;
+        if (Col != null)
+            Col.enabled = true;
 
         _baseScale = Vector3.one;
         transform.localScale = _baseScale * 0.85f;
@@ -64,12 +79,12 @@ public sealed class GateView : MonoBehaviour
         transform.position += Vector3.down * (_speed * Time.deltaTime);
 
         _spawnT += Time.deltaTime;
-        float p = Mathf.Clamp01(_spawnT / _spawnPunchDuration);
+        float p = SpawnPunchDuration <= 0f ? 1f : Mathf.Clamp01(_spawnT / SpawnPunchDuration);
         float wave = Mathf.Sin(p * Mathf.PI);
-        float punch = 0.85f + wave * _spawnPunchStrength;
+        float punch = 0.85f + wave * SpawnPunchStrength;
         transform.localScale = _baseScale * Mathf.Lerp(punch, 1f, p);
 
-        float wobble = Mathf.Sin((Time.time + _wobbleSeed) * _wobbleSpeed) * _wobbleAmount;
+        float wobble = Mathf.Sin((Time.time + _wobbleSeed) * WobbleSpeed) * WobbleAmount;
         transform.rotation = Quaternion.Euler(0f, 0f, wobble * 10f);
     }
 
@@ -86,21 +101,22 @@ public sealed class GateView : MonoBehaviour
 
     private void Choose()
     {
-        if (_isChosen || _isDespawned)
+        if (WasChosen || _isDespawned)
             return;
 
-        _isChosen = true;
+        WasChosen = true;
         OnChosen?.Invoke(this);
 
         Despawn();
     }
 
+    // Used when sibling must disappear or bounds cleanup happens.
+    // IMPORTANT: this is NOT a player choice, so WasChosen stays false.
     public void ForceDespawn()
     {
         if (_isDespawned)
             return;
 
-        _isChosen = true;
         Despawn();
     }
 
@@ -111,10 +127,9 @@ public sealed class GateView : MonoBehaviour
 
         _isDespawned = true;
 
-        if (_col != null)
-            _col.enabled = false;
+        if (Col != null)
+            Col.enabled = false;
 
-        // Don't deactivate here: pool will do that in Release(view)
         OnDespawned?.Invoke(this);
     }
 
@@ -131,8 +146,8 @@ public sealed class GateView : MonoBehaviour
 
     private static string LabelFor(TargetKind kind) => kind switch
     {
-        TargetKind.AddScore_Positive => "+50",
-        TargetKind.AddScore_Negative => "-30",
+        TargetKind.AddScore_Positive => "+5",
+        TargetKind.AddScore_Negative => "-5",
         TargetKind.MultiplyScore_x2 => "x2",
         TargetKind.DivideScore_div2 => "÷2",
         TargetKind.AddTime => "+3s",

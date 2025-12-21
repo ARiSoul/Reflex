@@ -66,7 +66,6 @@ public sealed class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Lane movement only (X). Y stays as physics/camera dictates.
         var pos = _rb.position;
 
         if (InstantSnap)
@@ -76,7 +75,9 @@ public sealed class PlayerController : MonoBehaviour
             return;
         }
 
-        pos.x = Mathf.MoveTowards(pos.x, _targetX, LaneChangeSpeed * Time.fixedDeltaTime);
+        float speed = LaneChangeSpeed;
+
+        pos.x = Mathf.MoveTowards(pos.x, _targetX, speed * Time.fixedDeltaTime);
         _rb.MovePosition(pos);
     }
 

@@ -154,13 +154,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 040d54985c52bc74084661506627f19c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TargetView
-  _spriteRenderer: {fileID: 594143229512073261}
-  _col: {fileID: 2703284958184553934}
-  _label: {fileID: 2964679533373077618}
-  _spawnPunchStrength: 0.22
-  _spawnPunchDuration: 0.1
-  _wobbleAmount: 0.04
-  _wobbleSpeed: 7
+  SpriteRenderer: {fileID: 594143229512073261}
+  Col: {fileID: 2703284958184553934}
+  Label: {fileID: 2964679533373077618}
+  SpawnPunchStrength: 0.22
+  SpawnPunchDuration: 0.1
+  WobbleAmount: 0.04
+  WobbleSpeed: 7
+  IsChosen: 0
 --- !u!50 &-3992200325936515307
 Rigidbody2D:
   serializedVersion: 5

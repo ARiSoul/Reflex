@@ -15,12 +15,16 @@ MonoBehaviour:
   Id: 8
   DurationSeconds: 10
   Positive: 0.2
-  Negative: 0.2
-  Multiplier: 0.2
-  Divider: 0.1
-  AddTime: 0.2
-  SubtractTime: 0.1
+  Negative: 0.36
+  Multiplier: 0
+  Divider: 0.2
+  AddTime: 0.04
+  SubtractTime: 0.2
   TargetSpeed: 9
   SpawnIntervalSeconds: 1.2
   SameCategoryChance: 0.15
   SameCategoryBadBias: 0.5
+  GoodGoodChance: 0.09
+  MinWavesBetweenGoodGood: 4
+  MaxWavesWithoutAddTime: 7
+  MaxSevereBadInARow: 4

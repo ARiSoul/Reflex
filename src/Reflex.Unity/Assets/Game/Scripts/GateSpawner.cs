@@ -17,6 +17,10 @@ public sealed class GateSpawner : MonoBehaviour
     public float GateHeightWorldUnits = 2.0f;
     public float MinGapWorldUnits = 0.5f;
 
+    [Header("Cruel Waves")]
+    [Range(0f, 1f)]
+    public float BadBadChance = 0.18f; // ~1 in 5–6 rows
+
     [Header("Sprites by Kind")]
     public Sprite AddPositive;
     public Sprite AddNegative;
@@ -28,17 +32,26 @@ public sealed class GateSpawner : MonoBehaviour
     [Header("Game")]
     public LevelManager LevelManager;
 
+    public bool IsSpawningEnabled = true;
+    public bool HasActiveGates => _activeGates > 0;
+
     private ObjectPool<GateView> _pool;
 
     private float _elapsed;
     private float _nextSpawnAt;
 
     private int _nextPairId = 1;
-    private readonly Dictionary<int, (GateView A, GateView B)> _pairs = new();
 
     private int _activeGates;
-    public bool HasActiveGates => _activeGates > 0;
-    public bool IsSpawningEnabled = true;
+
+    private readonly Dictionary<int, (GateView A, GateView B)> _pairs = new();
+    private readonly HashSet<int> _resolvedRows = new();
+    private readonly Dictionary<int, int> _rowDespawnCount = new();
+
+    // Fairness trackers
+    private int _wavesSinceGoodGood;
+    private int _wavesSinceAddTime;
+    private int _severeBadStreak;
 
     public void Init()
     {
@@ -46,6 +59,8 @@ public sealed class GateSpawner : MonoBehaviour
 
         _elapsed = 0f;
         _nextSpawnAt = 0f;
+        _resolvedRows.Clear();
+        _rowDespawnCount.Clear();
 
         LaneCount = Mathf.Max(1, LaneCount);
         GateHeightWorldUnits = Mathf.Max(0.01f, GateHeightWorldUnits);
@@ -53,15 +68,38 @@ public sealed class GateSpawner : MonoBehaviour
 
         _pairs.Clear();
         _nextPairId = 1;
+
         _activeGates = 0;
+
+        _wavesSinceGoodGood = 999;
+        _wavesSinceAddTime = 999;
+        _severeBadStreak = 0;
+
+        IsSpawningEnabled = true;
+    }
+
+    public void ResetForStage()
+    {
+        _elapsed = 0f;
+        _nextSpawnAt = 0f;
+
+        _wavesSinceGoodGood = 999;
+        _wavesSinceAddTime = 999;
+        _severeBadStreak = 0;
+
+        _resolvedRows.Clear();
+        _rowDespawnCount.Clear();
+        _pairs.Clear();
+        _activeGates = 0;
+        _nextPairId = 1;
     }
 
     public void TickSpawner(float dt)
     {
-        if (LevelManager == null || LevelManager.CurrentLevel == null)
+        if (!IsSpawningEnabled)
             return;
 
-        if (!IsSpawningEnabled)
+        if (LevelManager == null || LevelManager.CurrentLevel == null)
             return;
 
         _elapsed += dt;
@@ -94,29 +132,8 @@ public sealed class GateSpawner : MonoBehaviour
         int laneB = Random.Range(0, LaneCount - 1);
         if (laneB >= laneA) laneB++;
 
-        // Default: good vs bad
-        var goodKind = PickFromCategory(level, wantGood: true);
-        var badKind = PickFromCategory(level, wantGood: false);
-
-        var kindA = Random.value < 0.5f ? badKind : goodKind;
-        var kindB = kindA == badKind ? goodKind : badKind;
-
-        // Sometimes allow same-category pair
-        if (Random.value < level.SameCategoryChance)
-        {
-            bool bothBad = Random.value < level.SameCategoryBadBias;
-
-            if (bothBad)
-            {
-                kindA = PickFromCategory(level, wantGood: false);
-                kindB = PickFromCategory(level, wantGood: false);
-            }
-            else
-            {
-                kindA = PickFromCategory(level, wantGood: true);
-                kindB = PickFromCategory(level, wantGood: true);
-            }
-        }
+        // --- FAIRNESS LAYER: decide the pair kinds ---
+        ChoosePairKinds(level, out var kindA, out var kindB);
 
         int pairId = _nextPairId++;
 
@@ -124,6 +141,85 @@ public sealed class GateSpawner : MonoBehaviour
         var gateB = SpawnGateAtLane(laneB, speed, kindB, pairId);
 
         _pairs[pairId] = (gateA, gateB);
+        _resolvedRows.Remove(pairId);
+        _rowDespawnCount[pairId] = 0;
+    }
+
+    private void ChoosePairKinds(LevelConfig level, out TargetKind kindA, out TargetKind kindB)
+    {
+        // defaults: good + bad
+        var good = PickGood(level);
+        var bad = PickBad(level);
+
+        // Pity: force AddTime if we've gone too long without it (as the GOOD option)
+        if (_wavesSinceAddTime >= Mathf.Max(0, level.MaxWavesWithoutAddTime))
+            good = TargetKind.AddTime;
+
+        // Jackpot: allow good+good sometimes, but not too often
+        bool canJackpot = _wavesSinceGoodGood >= Mathf.Max(0, level.MinWavesBetweenGoodGood);
+        bool doJackpot = canJackpot && Random.value < Mathf.Clamp01(level.GoodGoodChance);
+
+        if (doJackpot)
+        {
+            kindA = PickGood(level);
+            kindB = PickGood(level);
+
+            // randomize sides a bit
+            if (Random.value < 0.5f)
+                (kindA, kindB) = (kindB, kindA);
+
+            _wavesSinceGoodGood = 0;
+
+            // update add-time tracker
+            if (kindA == TargetKind.AddTime || kindB == TargetKind.AddTime)
+                _wavesSinceAddTime = 0;
+            else
+                _wavesSinceAddTime++;
+
+            // jackpot wave should reset severe-bad streak pressure a bit
+            _severeBadStreak = 0;
+
+            return;
+        }
+
+        // Never bad+bad, so we stay good+bad always here.
+        // Also avoid "severe bad" too many times in a row (÷2 / -time).
+        bool badIsSevere = bad is TargetKind.DivideScore_div2 or TargetKind.SubtractTime;
+
+        if (badIsSevere)
+        {
+            _severeBadStreak++;
+
+            if (_severeBadStreak > Mathf.Max(1, level.MaxSevereBadInARow))
+            {
+                // downgrade to the mild bad option
+                bad = TargetKind.AddScore_Negative;
+                _severeBadStreak = 0;
+            }
+        }
+        else
+        {
+            _severeBadStreak = 0;
+        }
+
+        // assign sides randomly
+        if (Random.value < 0.5f)
+        {
+            kindA = good;
+            kindB = bad;
+        }
+        else
+        {
+            kindA = bad;
+            kindB = good;
+        }
+
+        _wavesSinceGoodGood++;
+
+        if (kindA == TargetKind.AddTime || kindB == TargetKind.AddTime)
+            _wavesSinceAddTime = 0;
+        else
+            _wavesSinceAddTime++;
     }
 
     private void SpawnSingle(LevelConfig level, float speed)
@@ -135,20 +231,6 @@ public sealed class GateSpawner : MonoBehaviour
         var gate = SpawnGateAtLane(lane, speed, kind, pairId);
 
         _pairs[pairId] = (gate, null);
-    }
-
-    private TargetKind PickFromCategory(LevelConfig level, bool wantGood)
-    {
-        // Keep trying a few times to satisfy category without overengineering.
-        for (int i = 0; i < 8; i++)
-        {
-            var k = TargetPickerUnity.Pick(level);
-            if (TargetPickerUnity.IsGood(k) == wantGood)
-                return k;
-        }
-
-        // Fallbacks if the weights basically don't allow the requested category.
-        return wantGood ? TargetKind.AddScore_Positive : TargetKind.AddScore_Negative;
     }
 
     private GateView SpawnGateAtLane(int laneIndex, float speed, TargetKind kind, int pairId)
@@ -187,6 +269,8 @@ public sealed class GateSpawner : MonoBehaviour
             if (pair.B != null && pair.B != chosen)
                 pair.B.ForceDespawn();
 
+            _resolvedRows.Add(pairId);
+            _rowDespawnCount.Remove(pairId);
             _pairs.Remove(pairId);
         }
 
@@ -199,7 +283,36 @@ public sealed class GateSpawner : MonoBehaviour
         view.OnChosen -= HandleChosen;
 
         _activeGates = Mathf.Max(0, _activeGates - 1);
+
+        int rowId = view.PairId;
+
         _pool.Release(view);
+
+        // If player chose a gate in this row, we don't count misses.
+        if (_resolvedRows.Contains(rowId))
+            return;
+
+        if (!_rowDespawnCount.TryGetValue(rowId, out var count))
+            return;
+
+        count++;
+        _rowDespawnCount[rowId] = count;
+
+        if (count >= 2)
+        {
+            _rowDespawnCount.Remove(rowId);
+
+            // Both gates despawned without being chosen -> missed row
+            GameManager.Instance.OnRowMissed(rowId);
+        }
+    }
+
+    public void Release(GateView view)
+    {
+        if (view == null)
+            return;
+
+        // Ensure counters & events stay consistent
         view.ForceDespawn();
     }
 
@@ -208,6 +321,31 @@ public sealed class GateSpawner : MonoBehaviour
         var half = (LaneCount - 1) * 0.5f;
         var offset = (laneIndex - half) * LaneWidth;
         return CenterX + offset;
+    }
+
+    private TargetKind PickGood(LevelConfig level)
+    {
+        // Try a few times to pick a "good" based on weights
+        for (int i = 0; i < 8; i++)
+        {
+            var k = TargetPickerUnity.Pick(level);
+            if (TargetPickerUnity.IsGood(k))
+                return k;
+        }
+
+        return TargetKind.AddScore_Positive;
+    }
+
+    private TargetKind PickBad(LevelConfig level)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            var k = TargetPickerUnity.Pick(level);
+            if (!TargetPickerUnity.IsGood(k))
+                return k;
+        }
+
+        return TargetKind.AddScore_Negative;
     }
 
     private Sprite SpriteFor(TargetKind kind) => kind switch
@@ -220,20 +358,4 @@ public sealed class GateSpawner : MonoBehaviour
         TargetKind.SubtractTime => SubTime,
         _ => AddPositive
     };
-
-    public void ResetForStage()
-    {
-        _elapsed = 0f;
-        _nextSpawnAt = 0f;
-    }
-
-    public void Release(GateView view)
-    {
-        if (view == null)
-            return;
-
-        // This will trigger OnDespawned -> HandleDespawned -> _pool.Release(view)
-        view.ForceDespawn();
-    }
-
 }

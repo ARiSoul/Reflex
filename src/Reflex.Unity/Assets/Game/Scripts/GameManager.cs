@@ -8,6 +8,7 @@ public sealed class GameManager : MonoBehaviour
     [Header("Refs")]
     public GateSpawner GateSpawner;
     public InputShooter InputShooter;
+    public Transform PlayerTransform;
 
     [Header("Run Settings")]
     public int MaxMistakes = 3;
@@ -21,6 +22,7 @@ public sealed class GameManager : MonoBehaviour
     public FloatingTextPool FloatingText;
     public MilestoneBanner Milestone;
     public LevelManager LevelManager;
+    public PlayerValueView PlayerValueView;
 
     private int _lastCombo;
     private bool _gameOverShown;
@@ -63,7 +65,7 @@ public sealed class GameManager : MonoBehaviour
     private void StartRun()
     {
         // Create ONE state for the whole run (score persists across levels)
-        _state = new GameState(startTimeSeconds: 0f, maxMistakes: MaxMistakes);
+        _state = new GameState(startTimeSeconds: 0f, maxMistakes: MaxMistakes, startPlayerValue: 10);
 
         GateSpawner.Init();
         GateSpawner.IsSpawningEnabled = true;
@@ -136,7 +138,7 @@ public sealed class GameManager : MonoBehaviour
         {
             Debug.Log($"GAME OVER | Score={_state.Score} TimeLeft={_state.TimeLeft:0.00} Mistakes={_state.Mistakes}/{_state.MaxMistakes}");
 
-            Hud?.Render(_state);
+            Hud.Render(_state);
 
             if (!_gameOverShown)
             {
@@ -169,7 +171,8 @@ public sealed class GameManager : MonoBehaviour
             CompleteLevelTransitionIfReady();
         }
 
-        Hud?.Render(_state);
+        Hud.Render(_state);
+        PlayerValueView.Render(_state.PlayerValue);
     }
 
     public void OnGateCollected(GateView gate)
@@ -197,8 +200,8 @@ public sealed class GameManager : MonoBehaviour
         {
             string msg = kind switch
             {
-                TargetKind.AddScore_Positive => "+50",
-                TargetKind.AddScore_Negative => "-30",
+                TargetKind.AddScore_Positive => "+5",
+                TargetKind.AddScore_Negative => "-5",
                 TargetKind.MultiplyScore_x2 => "x2!",
                 TargetKind.DivideScore_div2 => "÷2",
                 TargetKind.AddTime => "+3s",
@@ -254,7 +257,16 @@ public sealed class GameManager : MonoBehaviour
         };
 
         Vfx.PlayAt(gate.transform.position, vfxTint);
-
-        gate.Despawn();
     }
+
+    public void OnRowMissed(int rowId)
+    {
+        _state.MissRow();
+        Sfx.PlayBadHit();
+        Juice.BadHit();
+
+        // Optional: floating text “MISS” over player
+        FloatingText.Spawn("MISS", Color.red, PlayerTransform.position);
+    }
+
 }
